@@ -1,7 +1,28 @@
 Sub Report_Generator()
+    'CONSTANTS
+    Const wdLineStyleSingle As Integer = 1
+    
+    Const wdAlignParagraphLeft As Integer = 0
+    Const wdAlignParagraphCenter As Integer = 1
+    Const wdAlignParagraphRight As Integer = 2
+    
+    Const wdCellAlignVerticalCenter As Integer = 1
+    
+    Const wdLineWidth075pt As Integer = 6
+    Const wdLineWidth100pt As Integer = 8
+    Const wdLineWidth225pt As Integer = 18
+    
+    Const wdBorderTop As Integer = -1
+    Const wdBorderLeft As Integer = -2
+    Const wdBorderBottom As Integer = -3
+    Const wdBorderRight As Integer = -4
+    
     ' GET THE WORKBOOK
     Dim currentWorkbook As Workbook
     Set currentWorkbook = ActiveWorkbook
+
+    Dim path As String
+    path = currentWorkbook.path
 
     'GET THE SHEET
     Dim ws As Worksheet
@@ -12,10 +33,13 @@ Sub Report_Generator()
     
     Dim sortRange As range
     Set sortRange = ws.range("A1:Q" & lastRow)
+    
     Dim sortColumnDate As range
     Set sortColumnDate = sortRange.Columns(10)
+    
     Dim sortColumnUser As range
     Set sortColumnUser = sortRange.Columns(5)
+    
     Dim sortColumnClient As range
     Set sortColumnClient = sortRange.Columns(2)
     
@@ -42,8 +66,6 @@ Sub Report_Generator()
     Set descriptionValueMapping = CreateObject("Scripting.Dictionary")
     Set durationValueMapping = CreateObject("Scripting.Dictionary")
     
-    
-    
     Dim duplicatedRow As Object
     Set duplicatedRow = CreateObject("Scripting.Dictionary")
 
@@ -52,6 +74,7 @@ Sub Report_Generator()
    
    Dim maxDate As Date
    maxDate = DateValue(ws.Cells(2, 10).Value)
+   
     For i = 2 To lastRow
         Dim dateProcessed As Date
         dateProcessed = DateValue(ws.Cells(i, 10).Value)
@@ -77,6 +100,7 @@ Sub Report_Generator()
     
     Dim weekInitialDay As Date
     weekInitialDay = vbNull
+    
     Dim weekLastDay As Date
     weekLastDay = vbNull
 
@@ -173,7 +197,7 @@ Sub Report_Generator()
             
                  Dim wordApp As Object
                  Set wordApp = CreateObject("Word.Application")
-                 wordApp.Visible = True
+                 wordApp.Visible = False
                  
                  Dim wordDoc As Object
                  Set wordDoc = wordApp.Documents.Add
@@ -187,8 +211,7 @@ Sub Report_Generator()
                          .Font.Name = "Arial"
                          .Font.Size = 16
                          .Font.Bold = True
-                         .ParagraphFormat.Alignment = 0
-                         .InsertParagraphAfter
+                         .ParagraphFormat.Alignment = wdAlignParagraphLeft
                      End With
                      
                      Dim userNameIndex As Integer
@@ -207,74 +230,129 @@ Sub Report_Generator()
                     
                      .Content.Paragraphs.Add
                      With .Content.Paragraphs.Last.range
-                         .Text = "Client Name: " & CStr(clientItem) & vbCr & _
-                                 "Project Name: " & CStr(projectItem) & vbCr & _
-                                 "Developer Name: " & CStr(userItem) & vbCr & _
-                                 "Week Ending: " & Format(weekLastDay, "MM/dd/yyyy") & vbCr
+                         .Text = "Client Name: " & vbTab & vbTab & CStr(clientItem)
                          .Font.Size = 10
-                         .ParagraphFormat.Alignment = 0
-                         .InsertParagraphAfter
+                         .ParagraphFormat.Alignment = wdAlignParagraphLeft
+                         .Font.Bold = True
+            
+                        ' Set the specific portions of text to bold
+                         .Words(1).Font.Bold = False ' Client
+                         .Words(2).Font.Bold = False ' Name
                      End With
                      
+                     .Content.Paragraphs.Add
+                     With .Content.Paragraphs.Last.range
+                         .Text = "Project Name: " & vbTab & vbTab & CStr(projectItem)
+                         .Font.Size = 10
+                         .ParagraphFormat.Alignment = wdAlignParagraphLeft
+                         .Font.Bold = True
+            
+                        ' Set the specific portions of text to bold
+                         .Words(1).Font.Bold = False ' Project
+                         .Words(2).Font.Bold = False ' Name
+                     End With
+                     
+                     .Content.Paragraphs.Add
+                     With .Content.Paragraphs.Last.range
+                         .Text = "Developer Name: " & vbTab & CStr(userItem)
+                         .Font.Size = 10
+                         .ParagraphFormat.Alignment = wdAlignParagraphLeft
+                         .Font.Bold = True
+            
+                        ' Set the specific portions of text to bold
+                         .Words(1).Font.Bold = False ' Developer
+                         .Words(2).Font.Bold = False ' Name
+                     End With
+                     
+                     .Content.Paragraphs.Add
+                     With .Content.Paragraphs.Last.range
+                         .Text = "Week Ending: " & vbTab & vbTab & Format(weekLastDay, "MM/dd/yyyy") & vbCr
+                         .Font.Size = 10
+                         .ParagraphFormat.Alignment = wdAlignParagraphLeft
+                         .Font.Bold = True
+            
+                        ' Set the specific portions of text to bold
+                         .Words(1).Font.Bold = False ' Week
+                         .Words(2).Font.Bold = False ' Ending
+                                     
+                        .InsertParagraphAfter
+                     End With
                 
                      .Tables.Add range:=.Content.Paragraphs.Add.range, NumRows:=2, NumColumns:=4
                      With .Tables(1)
                          .Borders.Enable = True
                         
-                         .cell(1, 1).range.Text = "WEEKLY ACTIVITY SUMMARY (REQUIRED)"
+                         .cell(1, 1).range.Text = "Weekly Activity Summary (Required)"
                          .cell(1, 1).Merge MergeTo:=.cell(1, 4)
                          .cell(1, 1).SetWidth ColumnWidth:=500, RulerStyle:=wdAdjustFirstColumn
-                         .cell(1, 1).range.Paragraphs.Alignment = 1
+                         .cell(1, 1).range.Paragraphs.Alignment = wdAlignParagraphCenter
+                         .cell(1, 1).range.Paragraphs(1).range.Font.Smallcaps = True
                          
-                       
-                          .cell(1, 1).Borders(-1).LineStyle = 1
-                          .cell(1, 1).Borders(-1).LineWidth = 18
-                          .cell(1, 1).Borders(-1).Color = RGB(0, 0, 0)
+                         .cell(1, 1).range.ParagraphFormat.SpaceAfter = 0
+                         .cell(1, 1).VerticalAlignment = wdCellAlignVerticalCenter
+                         
+                          .cell(1, 1).Borders(wdBorderTop).LineStyle = wdLineStyleSingle
+                          .cell(1, 1).Borders(wdBorderTop).LineWidth = wdLineWidth225pt
+                          .cell(1, 1).Borders(wdBorderTop).Color = RGB(0, 0, 0)
                                                     
-                          .cell(1, 1).Borders(-2).LineStyle = 1
-                          .cell(1, 1).Borders(-2).LineWidth = 18
-                          .cell(1, 1).Borders(-2).Color = RGB(0, 0, 0)
+                          .cell(1, 1).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
+                          .cell(1, 1).Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
+                          .cell(1, 1).Borders(wdBorderLeft).Color = RGB(0, 0, 0)
                                                    
                           
-                          .cell(1, 1).Borders(-4).LineStyle = 1
-                          .cell(1, 1).Borders(-4).LineWidth = 18
-                          .cell(1, 1).Borders(-4).Color = RGB(0, 0, 0)
+                          .cell(1, 1).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
+                          .cell(1, 1).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
+                          .cell(1, 1).Borders(wdBorderRight).Color = RGB(0, 0, 0)
             
                          
-                         .cell(2, 1).range.Text = "DAY"
+                         .cell(2, 1).range.Text = "Day"
                          .cell(2, 1).SetWidth ColumnWidth:=40, RulerStyle:=wdAdjustFirstColumn
-                         .cell(2, 1).range.Paragraphs.Alignment = 1
+                         .cell(2, 1).range.Paragraphs(1).range.Font.Smallcaps = True
+                         .cell(2, 1).range.ParagraphFormat.SpaceAfter = 0
+                         .cell(2, 1).VerticalAlignment = wdCellAlignVerticalCenter
+                         .cell(2, 1).range.Paragraphs.Alignment = wdAlignParagraphCenter
                          
-                         .cell(2, 1).Borders(-2).LineStyle = 1
-                         .cell(2, 1).Borders(-2).LineWidth = 18
+                         .cell(2, 1).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
+                         .cell(2, 1).Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
                          
-                         .cell(2, 2).range.Text = "DATE"
+                         .cell(2, 2).range.Text = "Date"
                          .cell(2, 2).SetWidth ColumnWidth:=80, RulerStyle:=wdAdjustFirstColumn
-                         .cell(2, 2).range.Paragraphs.Alignment = 1
+                         .cell(2, 2).range.Paragraphs(1).range.Font.Smallcaps = True
+                         .cell(2, 2).range.ParagraphFormat.SpaceAfter = 0
+                         .cell(2, 2).VerticalAlignment = wdCellAlignVerticalCenter
+                         .cell(2, 2).range.Paragraphs.Alignment = wdAlignParagraphCenter
                          
-                         .cell(2, 3).range.Text = "HOURS"
+                         .cell(2, 3).range.Text = "Hours"
                          .cell(2, 3).SetWidth ColumnWidth:=50, RulerStyle:=wdAdjustFirstColumn
-                         .cell(2, 3).range.Paragraphs.Alignment = 1
+                         .cell(2, 3).range.Paragraphs(1).range.Font.Smallcaps = True
+                         .cell(2, 3).range.ParagraphFormat.SpaceAfter = 0
+                         .cell(2, 3).VerticalAlignment = wdCellAlignVerticalCenter
+                         .cell(2, 3).range.Paragraphs.Alignment = wdAlignParagraphCenter
                          
-                         .cell(2, 4).range.Text = "ACTIVITY"
+                         .cell(2, 4).range.Text = "Activity"
                          .cell(2, 4).SetWidth ColumnWidth:=330, RulerStyle:=wdAdjustFirstColumn
-                         .cell(2, 4).range.Paragraphs.Alignment = 1
-                         .cell(2, 4).Borders(-4).LineStyle = 1
-                         .cell(2, 4).Borders(-4).LineWidth = 18
+                         .cell(2, 4).range.Paragraphs(1).range.Font.Smallcaps = True
+                         .cell(2, 4).range.ParagraphFormat.SpaceAfter = 0
+                         .cell(2, 4).VerticalAlignment = wdCellAlignVerticalCenter
+                         .cell(2, 4).range.Paragraphs.Alignment = wdAlignParagraphCenter
+                         .cell(2, 4).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
+                         .cell(2, 4).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
                          
-                          .cell(1, 1).Borders(-3).LineStyle = 1
-                          .cell(1, 1).Borders(-3).LineWidth = 18
-                          .cell(1, 1).Borders(-3).Color = RGB(0, 0, 0)
+                          .cell(1, 1).Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
+                          .cell(1, 1).Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
+                          .cell(1, 1).Borders(wdBorderBottom).Color = RGB(0, 0, 0)
                          
                          .Rows(1).range.Font.Name = "Times New Roman"
                          .Rows(1).range.Font.Size = 10
                          .Rows(1).range.Font.Bold = True
                          .Rows(1).range.Shading.BackgroundPatternColor = RGB(230, 230, 230)
+                         .Rows(1).Height = 20
                          
                          .Rows(2).range.Font.Name = "Times New Roman"
                          .Rows(2).range.Font.Size = 10
                          .Rows(2).range.Font.Bold = True
                          .Rows(2).range.Shading.BackgroundPatternColor = RGB(230, 230, 230)
+                         .Rows(2).Height = 20
                      End With
                      
                                 
@@ -333,19 +411,26 @@ Sub Report_Generator()
                         .Tables(1).Rows.Add
                         With .Tables(1)
                             .cell(wordRowIndex + 2, 1).range.Text = dayOfWeek
+                            .cell(wordRowIndex + 2, 1).range.Paragraphs(1).range.Font.Smallcaps = False
                             
                             .cell(wordRowIndex + 2, 2).range.Text = Format(activityDate, "mm/dd/yyyy")
+                            .cell(wordRowIndex + 2, 2).range.Paragraphs(1).range.Font.Smallcaps = False
                             
-                            .cell(wordRowIndex + 2, 3).range.Text = durationValueMapping(key) 'ws.Cells(rowIndex, 15).Value
-                            .cell(wordRowIndex + 2, 3).range.Paragraphs.Alignment = 2 ' Align the cell content to the right
+                            .cell(wordRowIndex + 2, 3).range.Text = durationValueMapping(key)
+                            .cell(wordRowIndex + 2, 3).range.Paragraphs.Alignment = wdAlignParagraphRight
+                            .cell(wordRowIndex + 2, 3).range.Paragraphs(1).range.Font.Smallcaps = False
                             
-                            .cell(wordRowIndex + 2, 4).range.Text = descriptionValueMapping(key) 'ws.Cells(rowIndex, 3).Value
-                            .cell(wordRowIndex + 2, 4).range.Paragraphs.Alignment = 0
+                            .cell(wordRowIndex + 2, 4).range.Text = descriptionValueMapping(key)
+                            .cell(wordRowIndex + 2, 4).range.Paragraphs.Alignment = wdAlignParagraphLeft
+                            
+                            Dim cellParagraphs As Variant
+                            For Each cellParagraphs In .cell(wordRowIndex + 2, 4).range.Paragraphs
+                                cellParagraphs.range.Font.Smallcaps = False
+                            Next cellParagraphs
 
-                            
                             .Rows(wordRowIndex + 1).range.Font.Bold = False
                             .Rows(wordRowIndex + 1).range.Shading.BackgroundPatternColor = RGB(255, 255, 255)
-                            .Rows(wordRowIndex).Borders(-3).LineWidth = 8
+                            .Rows(wordRowIndex).Borders(wdBorderBottom).LineWidth = wdLineWidth100pt
                             .cell(wordRowIndex + 1, 1).range.Font.Bold = True
                         End With
                         
@@ -363,17 +448,17 @@ skipIteration:
                             .cell(.Rows.Count, 1).range.Font.Bold = True
                             .cell(.Rows.Count, 3).range.Text = Format(totalHours, "0.00") ' Display the accumulated total hours
                             .cell(.Rows.Count, 3).range.Font.Bold = True
-                            .cell(.Rows.Count, 3).range.Paragraphs.Alignment = 2
+                            .cell(.Rows.Count, 3).range.Paragraphs.Alignment = wdAlignParagraphRight
                             
                             .cell(.Rows.Count, 1).Merge MergeTo:=.cell(.Rows.Count, 2)
-                            .cell(.Rows.Count, 1).range.Paragraphs.Alignment = 2
+                            .cell(.Rows.Count, 1).range.Paragraphs.Alignment = wdAlignParagraphRight
                                                      
-                            .Rows(.Rows.Count).Borders(-2).LineStyle = 1
-                            .Rows(.Rows.Count).Borders(-3).LineStyle = 1
-                            .Rows(.Rows.Count).Borders(-4).LineStyle = 1
-                            .Rows(.Rows.Count).Borders(-2).LineWidth = 18
-                            .Rows(.Rows.Count).Borders(-3).LineWidth = 18
-                            .Rows(.Rows.Count).Borders(-4).LineWidth = 18
+                            .Rows(.Rows.Count).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.Count).Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.Count).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.Count).Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
+                            .Rows(.Rows.Count).Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
+                            .Rows(.Rows.Count).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
                         End With
                         
                         If wordRowIndex > 2 Then
@@ -395,11 +480,11 @@ skipIteration:
                                         .Tables(1).Rows.Add BeforeRow:=.Tables(1).Rows(i + 3)
                                         
                                         .Tables(1).cell(i + 3, 1).range.Text = CStr(daysOfWeek(i))
-                                        .Tables(1).Rows(i + 3).Borders(-3).LineWidth = 6
+                                        .Tables(1).Rows(i + 3).Borders(wdBorderBottom).LineWidth = wdLineWidth075pt
                                         .Tables(1).cell(i + 3, 2).range.Text = CStr(Format(dateCol, "MM/dd/yyyy"))
                                         
                                         .Tables(1).cell(i + 3, 3).range.Text = "0.00"
-                                        .Tables(1).cell(i + 3, 3).range.Paragraphs.Alignment = 2
+                                        .Tables(1).cell(i + 3, 3).range.Paragraphs.Alignment = wdAlignParagraphRight
                                         .Tables(1).cell(i + 3, 3).range.Font.Bold = False
                                     End If
                                     
@@ -407,10 +492,7 @@ skipIteration:
                                 Next i
                                 
                             End If
-                            
-                            '.Tables(1).cell(.Rows.Count, 1).range.Paragraphs.Alignment = 0
-                            
-                            
+
                             Dim otherTables() As String
                             otherTables = Split("ACCOMPLISHMENTS (REQUIRED),UNPLANNED TASKS,PROGRESS NOT ACHIEVED,PROGRESS PLANNED NEXT WEEK (REQUIRED),OPEN ISSUES OR CONCERNS,MISCELLANEOUS SCHEDULING", ",")
                             
@@ -420,42 +502,43 @@ skipIteration:
                                 .Tables.Add range:=.Content.Paragraphs.Add.range, NumRows:=2, NumColumns:=1
                                 With .Tables.Item(i + 2)
                                     .Borders.Enable = True
-                                    .Borders(-1).LineStyle = 1
-                                    .Borders(-1).LineWidth = 18
+                                    .Borders(wdBorderTop).LineStyle = wdLineStyleSingle
+                                    .Borders(wdBorderTop).LineWidth = wdLineWidth225pt
                                     
-                                    .Borders(-2).LineStyle = 1
-                                    .Borders(-2).LineWidth = 18
+                                    .Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
+                                    .Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
                                     
-                                    .Borders(-3).LineStyle = 1
-                                    .Borders(-3).LineWidth = 18
+                                    .Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
+                                    .Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
                                     
-                                    .Borders(-4).LineStyle = 1
-                                    .Borders(-4).LineWidth = 18
+                                    .Borders(wdBorderRight).LineStyle = wdLineStyleSingle
+                                    .Borders(wdBorderRight).LineWidth = wdLineWidth225pt
                             
                                     .cell(1, 1).range.Text = UCase(otherTables(i))
                                     .cell(1, 1).SetWidth ColumnWidth:=500, RulerStyle:=wdAdjustFirstColumn
-                                    .cell(1, 1).range.Paragraphs.Alignment = 0
-                                    
+                                    .cell(1, 1).range.Paragraphs.Alignment = wdAlignParagraphLeft
+                                    .cell(1, 1).range.Paragraphs(1).range.Font.Smallcaps = True
+                                    .cell(1, 1).range.ParagraphFormat.SpaceAfter = 0
+                                    .cell(1, 1).VerticalAlignment = wdCellAlignVerticalCenter
+                                                                        
                                     .cell(2, 1).SetWidth ColumnWidth:=500, RulerStyle:=wdAdjustFirstColumn
+                                    .cell(2, 1).range.Paragraphs(1).range.Font.Smallcaps = False
                                     
                                     .Rows(1).range.Font.Name = "Times New Roman"
                                     .Rows(1).range.Font.Size = 10
                                     .Rows(1).range.Font.Bold = True
                                     .Rows(1).range.Shading.BackgroundPatternColor = RGB(230, 230, 230)
+                                    .Rows(1).Height = 20
                                     
                                     .Rows(2).range.Font.Name = "Times New Roman"
                                     .Rows(2).range.Font.Size = 10
                                     .Rows(2).range.Font.Bold = False
                                     .Rows(2).range.Shading.BackgroundPatternColor = RGB(255, 255, 255)
                                     .Rows(2).range.ListFormat.ApplyBulletDefault
-                                    
-                                    'If i = 0 Then
-                                        '.Rows(2).Height = 60
-                                    'End If
                                 End With
                             Next i
                             
-                            .SaveAs "D:\Descargas\Status Report - " & Format(weekLastDay, "MM-dd-yyyy") & " - " & CStr(clientItem) & " - " & CStr(projectItem) & " - " & CStr(userItem) & ".docx"
+                            .SaveAs path & "\Status Report - " & Format(weekLastDay, "MM-dd-yyyy") & " - " & CStr(clientItem) & " - " & CStr(projectItem) & " - " & CStr(userItem) & ".docx"
                             .Close
                         Else
                             wordApp.DisplayAlerts = False
@@ -473,5 +556,7 @@ skipIteration:
             Next projectItem
         Next clientItem
     Next userItem
-
+    
+    MsgBox "Generación de reportes concluida.", vbOKOnly, "Final del proceso", vbNull, vbNull
 End Sub
+
