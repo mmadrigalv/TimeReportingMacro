@@ -87,13 +87,16 @@ Sub Report_Generator()
         End If
     Next i
     
-    maxDate = maxDate + 8 - Weekday(maxDate, vbFriday)
+    If Weekday(minDate) <> vbSaturday Then
+        minDate = minDate + 1 - Weekday(minDate, vbSaturday) 'previousSaturday
+    End If
     
-    Dim previousSaturday As Date
-    previousSaturday = minDate + 1 - Weekday(minDate, vbSaturday)
+    If Weekday(maxDate) <> vbFriday Then
+        maxDate = maxDate + 8 - Weekday(maxDate, vbFriday) 'next friday
+    End If
 
     Dim initialDate As Date
-    initialDate = previousSaturday
+    initialDate = minDate
     Dim weekId As Integer
     weekId = 1
     weeks.Add 1
@@ -187,17 +190,21 @@ Sub Report_Generator()
     
         Dim clientItem As Variant
         For Each clientItem In clientsName
-        
+
             Dim projectItem As Variant
             For Each projectItem In projectsName
              
              weekLastDay = vbNull
              Dim weekItem As Variant
              For Each weekItem In weeks
-            
+                
+                 If weekLastDay >= maxDate Then
+                    GoTo skipWeek
+                 End If
+                 
                  Dim wordApp As Object
                  Set wordApp = CreateObject("Word.Application")
-                 wordApp.Visible = False
+                 wordApp.Visible = True
                  
                  Dim wordDoc As Object
                  Set wordDoc = wordApp.Documents.Add
@@ -219,13 +226,13 @@ Sub Report_Generator()
                      
                      Dim clientNameIndex As Integer
                      clientNameIndex = clientNameMapping.Item(clientItem)
-                     
+
                     If weekLastDay = vbNull Then
                         weekInitialDay = minDate
                      Else
                         weekInitialDay = weekLastDay + 1
                      End If
-                                          
+
                      weekLastDay = weekInitialDay + 6
                     
                      .Content.Paragraphs.Add
@@ -430,7 +437,7 @@ Sub Report_Generator()
 
                             .Rows(wordRowIndex + 1).range.Font.Bold = False
                             .Rows(wordRowIndex + 1).range.Shading.BackgroundPatternColor = RGB(255, 255, 255)
-                            .Rows(wordRowIndex).Borders(wdBorderBottom).LineWidth = wdLineWidth100pt
+                            .Rows(wordRowIndex).Borders(wdBorderBottom).LineWidth = wdLineWidth075pt
                             .cell(wordRowIndex + 1, 1).range.Font.Bold = True
                         End With
                         
@@ -450,9 +457,6 @@ skipIteration:
                             .cell(.Rows.Count, 3).range.Font.Bold = True
                             .cell(.Rows.Count, 3).range.Paragraphs.Alignment = wdAlignParagraphRight
                             
-                            .cell(.Rows.Count, 1).Merge MergeTo:=.cell(.Rows.Count, 2)
-                            .cell(.Rows.Count, 1).range.Paragraphs.Alignment = wdAlignParagraphRight
-                                                     
                             .Rows(.Rows.Count).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
                             .Rows(.Rows.Count).Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
                             .Rows(.Rows.Count).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
@@ -460,7 +464,7 @@ skipIteration:
                             .Rows(.Rows.Count).Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
                             .Rows(.Rows.Count).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
                         End With
-                        
+
                         If wordRowIndex > 2 Then
                             If wordRowIndex < 9 Then
                                 ' Loop through each day of the week
@@ -492,6 +496,9 @@ skipIteration:
                                 Next i
                                 
                             End If
+
+                            .Tables(1).cell(10, 1).Merge MergeTo:=.Tables(1).cell(10, 2)
+                            .Tables(1).cell(10, 1).range.Paragraphs.Alignment = wdAlignParagraphRight
 
                             Dim otherTables() As String
                             otherTables = Split("ACCOMPLISHMENTS (REQUIRED),UNPLANNED TASKS,PROGRESS NOT ACHIEVED,PROGRESS PLANNED NEXT WEEK (REQUIRED),OPEN ISSUES OR CONCERNS,MISCELLANEOUS SCHEDULING", ",")
@@ -548,10 +555,11 @@ skipIteration:
                            
                         End If
                     End With
-                    
+
                     wordApp.Quit
                     Set wordDoc = Nothing
                     Set wordApp = Nothing
+skipWeek:
                 Next weekItem
             Next projectItem
         Next clientItem
@@ -559,4 +567,3 @@ skipIteration:
     
     MsgBox "Generación de reportes concluida.", vbOKOnly, "Final del proceso", vbNull, vbNull
 End Sub
-
