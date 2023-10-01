@@ -210,7 +210,6 @@ Sub Report_Generator()
                 End If
                 weekLastDay = weekInitialDay + 6
                 
-                'Martin Code
                 ws.AutoFilterMode = False
                 
                 ws.Range("A1").AutoFilter Field:=1, Criteria1:=projectItem
@@ -254,7 +253,6 @@ Sub Report_Generator()
                     GoTo skipWeek
                 End If
                 ws.AutoFilterMode = False
-                'Martin Code
                  
                  
                  Dim wordApp As Object
