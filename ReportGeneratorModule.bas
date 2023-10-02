@@ -71,14 +71,14 @@ Sub Report_Generator()
     Set duplicatedRow = CreateObject("Scripting.Dictionary")
 
    Dim minDate As Date
-   minDate = Format(dateValue(ws.Cells(2, 10).Value), "dd/MM/yyyy")
+   minDate = GetFormatedDate(ws.Cells(2, 10).Value)
    
    Dim maxDate As Date
-   maxDate = Format(dateValue(ws.Cells(2, 10).Value), "dd/MM/yyyy")
+   maxDate = minDate 
    
     For i = 2 To lastRow
         Dim dateProcessed As Date
-        dateProcessed = Format(dateValue(ws.Cells(i, 10).Value), "dd/MM/yyyy")
+        dateProcessed = GetFormatedDate(ws.Cells(i, 10).Value)
         If dateProcessed < minDate Then
             minDate = dateProcessed
         End If
@@ -134,7 +134,7 @@ Sub Report_Generator()
         project = ws.Cells(rowIndex, 1).Value
         
         Dim startDate As String
-        startDate = Format(ws.Cells(rowIndex, 10).Value, "dd/MM/yyyy")
+        startDate = GetFormatedDate(ws.Cells(rowIndex, 10).Value)
         
         Dim durationInHours As Double
         durationInHours = ws.Cells(rowIndex, 15).Value
@@ -424,8 +424,8 @@ Sub Report_Generator()
                            userNameMapping(rowIndex) <> CStr(userItem) Or _
                            clientNameMapping(rowIndex) <> clientItem Or _
                            projectNameMapping(rowIndex) <> projectItem Or _
-                           CDate(dateMapping(rowIndex)) < CDate(Format(weekInitialDay, "dd/MM/yyyy")) Or _
-                           CDate(dateMapping(rowIndex)) > CDate(weekLastDay) Then
+                           CDate(dateMapping(rowIndex)) < weekInitialDay Or _
+                           CDate(dateMapping(rowIndex)) > weekLastDay Then
                             GoTo skipIteration
                         End If
                                             
@@ -435,11 +435,11 @@ Sub Report_Generator()
                         
                         project = ws.Cells(rowIndex, 1).Value
                         
-                        startDate = Format(ws.Cells(rowIndex, 10).Value, "dd/MM/yyyy")
+                        startDate = GetFormatedDate(ws.Cells(rowIndex, 10).Value)
                         
                         key = user & "_" & client & "_" & project & "_" & startDate
                     
-                        activityDate = Format(ws.Cells(rowIndex, 10).Value, "dd/MM/yyyy")
+                        activityDate = startDate
                         
                         dayOfWeek = Format(activityDate, "ddd")
                         
@@ -466,7 +466,7 @@ Sub Report_Generator()
                             .cell(wordRowIndex + 2, 1).Range.Text = dayOfWeek
                             .cell(wordRowIndex + 2, 1).Range.Paragraphs(1).Range.Font.Smallcaps = False
                             
-                            .cell(wordRowIndex + 2, 2).Range.Text = Format(activityDate, "mm/dd/yyyy")
+                            .cell(wordRowIndex + 2, 2).Range.Text = Format(activityDate, "MM/dd/yyyy")
                             .cell(wordRowIndex + 2, 2).Range.Paragraphs(1).Range.Font.Smallcaps = False
                             
                             .cell(wordRowIndex + 2, 3).Range.Text = durationValueMapping(key)
@@ -591,7 +591,7 @@ skipIteration:
                                 End With
                             Next i
                             
-                            .SaveAs path & "\Status Report - " & Format(weekLastDay, "dd-MM-yyyy") & " - " & CStr(clientItem) & " - " & CStr(projectItem) & " - " & CStr(userItem) & ".docx"
+                            .SaveAs path & "\Status Report - " & Format(weekLastDay, "MM-dd-yyyy") & " - " & CStr(clientItem) & " - " & CStr(projectItem) & " - " & CStr(userItem) & ".docx"
                             .Close
                         Else
                             wordApp.DisplayAlerts = False
@@ -615,3 +615,6 @@ skipWeek:
     MsgBox "Generación de reportes concluida.", vbOKOnly, "Final del proceso", vbNull, vbNull
 End Sub
 
+Private Function GetFormatedDate(dateToCast As String) As Date
+     GetFormatedDate = DateValue(Format(dateToCast, "dd/MM/yyyy"))  'Cast String to Date Specifing that format on excel string is dd/MM/yyyy
+End Function
