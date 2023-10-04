@@ -29,22 +29,65 @@ Sub Report_Generator()
     Set ws = currentWorkbook.Sheets("Detailed Report")
     ws.AutoFilterMode = False
     
+    'GET COLUMN INDEX
+    Dim headerRange As Range
+    Dim header As Range
+    Set headerRange = ws.Rows(1) 'First row
+    
+    Dim headersToFind() As String
+    headersToFind = Split("Project,Client,Description,Task,User,Start Date,Duration (decimal)", ",")
+    Dim headerText As Variant
+    
+    Set columnIndexName = CreateObject("Scripting.Dictionary")
+    Dim counter As Integer
+    For Each headerText In headersToFind
+        counter = 1
+        For Each header In headerRange.Cells
+            If CStr(header.Value) = headerText Then
+                columnIndexName.Add headerText, counter
+                Exit For
+            End If
+            counter = counter + 1
+        Next header
+    Next headerText
+    
+    Dim projectColumnIndex As Integer
+    projectColumnIndex = columnIndexName.Item("Project")
+    
+    Dim clientColumnIndex As Integer
+    clientColumnIndex = columnIndexName.Item("Client")
+    
+    Dim descriptionColumnIndex As Integer
+    descriptionColumnIndex = columnIndexName.Item("Description")
+    
+    Dim taskColumnIndex As Integer
+    taskColumnIndex = columnIndexName.Item("Task")
+    
+    Dim userColumnIndex As Integer
+    userColumnIndex = columnIndexName.Item("User")
+    
+    Dim startDateColumnIndex As Integer
+    startDateColumnIndex = columnIndexName.Item("Start Date")
+    
+     Dim durationColumnIndex As Integer
+     durationColumnIndex = columnIndexName.Item("Duration (decimal)")
+    
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    lastRow = ws.Cells(ws.Rows.count, "A").End(xlUp).Row
     
     Dim sortRange As Range
     Set sortRange = ws.Range("A1:Q" & lastRow)
     
     Dim sortColumnDate As Range
-    Set sortColumnDate = sortRange.Columns(10)
+    Set sortColumnDate = sortRange.Columns(startDateColumnIndex)
     
     Dim sortColumnUser As Range
-    Set sortColumnUser = sortRange.Columns(5)
+    Set sortColumnUser = sortRange.Columns(userColumnIndex)
     
     Dim sortColumnClient As Range
-    Set sortColumnClient = sortRange.Columns(2)
+    Set sortColumnClient = sortRange.Columns(clientColumnIndex)
     
-    sortRange.Sort Key1:=sortColumnDate, Key2:=sortColumnUser, Key3:=sortColumnClient, Order1:=xlAscending, Order2:=xlAscending, Order3:=xlAscending, Header:=xlYes
+    sortRange.Sort Key1:=sortColumnDate, Key2:=sortColumnUser, Key3:=sortColumnClient, Order1:=xlAscending, Order2:=xlAscending, Order3:=xlAscending, header:=xlYes
  
     Set usersName = New Collection
     Set clientsName = New Collection
@@ -71,14 +114,14 @@ Sub Report_Generator()
     Set duplicatedRow = CreateObject("Scripting.Dictionary")
 
    Dim minDate As Date
-   minDate = GetFormatedDate(ws.Cells(2, 10).Value)
+   minDate = GetFormatedDate(ws.Cells(2, startDateColumnIndex).Value)
    
    Dim maxDate As Date
-   maxDate = minDate 
+   maxDate = minDate
    
     For i = 2 To lastRow
         Dim dateProcessed As Date
-        dateProcessed = GetFormatedDate(ws.Cells(i, 10).Value)
+        dateProcessed = GetFormatedDate(ws.Cells(i, startDateColumnIndex).Value)
         If dateProcessed < minDate Then
             minDate = dateProcessed
         End If
@@ -125,26 +168,26 @@ Sub Report_Generator()
     
     For rowIndex = 2 To lastRow
 
-        user = ws.Cells(rowIndex, 5).Value
+        user = ws.Cells(rowIndex, userColumnIndex).Value
         
         Dim client As String
-        client = ws.Cells(rowIndex, 2).Value
+        client = ws.Cells(rowIndex, clientColumnIndex).Value
         
         Dim project As String
-        project = ws.Cells(rowIndex, 1).Value
+        project = ws.Cells(rowIndex, projectColumnIndex).Value
         
         Dim startDate As String
-        startDate = GetFormatedDate(ws.Cells(rowIndex, 10).Value)
+        startDate = GetFormatedDate(ws.Cells(rowIndex, startDateColumnIndex).Value)
         
         Dim durationInHours As Double
-        durationInHours = ws.Cells(rowIndex, 15).Value
+        durationInHours = ws.Cells(rowIndex, durationColumnIndex).Value
         
         Dim taskDescription As String
-        taskDescription = ws.Cells(rowIndex, 4).Value
+        taskDescription = ws.Cells(rowIndex, taskColumnIndex).Value
         If taskDescription <> "" Then
-            taskDescription = taskDescription & " " & ws.Cells(rowIndex, 3).Value
+            taskDescription = taskDescription & " " & ws.Cells(rowIndex, descriptionColumnIndex).Value
         Else
-         taskDescription = ws.Cells(rowIndex, 3).Value
+         taskDescription = ws.Cells(rowIndex, descriptionColumnIndex).Value
         End If
         
         
@@ -172,7 +215,46 @@ Sub Report_Generator()
         
          If descriptionValueMapping.Exists(key) Then
             duplicatedRow.Add rowIndex, rowIndex
-            descriptionValueMapping(key) = descriptionValueMapping(key) & vbCr & "- " & Format(durationInHours, "0.00") & " h " & taskDescription
+            Dim line As Variant
+            Dim descriptionLines() As String
+            descriptionLines = Split(Trim(descriptionValueMapping(key)), vbCr)
+            descriptionValueMapping(key) = ""
+            
+            Dim hasFound As Boolean
+            hasFound = False
+            For Each line In descriptionLines
+                If Not line = "" Then
+                    If StringEndsWith(line, taskDescription) Then
+                        hasFound = True
+                        
+                        Dim startPosition As Integer
+                        startPosition = InStr(1, line, "- ") + 2
+                        
+                        Dim endPosition As Integer
+                        endPosition = InStr(1, line, " h ")
+                        
+                        Dim duration As Double
+                        duration = CDbl(Mid(line, startPosition, endPosition - startPosition))
+                        duration = duration + durationInHours
+                        
+                        If descriptionValueMapping(key) = "" Then
+                             descriptionValueMapping(key) = descriptionValueMapping(key) & "- " & Format(duration, "0.00") & " h " & taskDescription
+                        Else
+                             descriptionValueMapping(key) = descriptionValueMapping(key) & vbCr & "- " & Format(duration, "0.00") & " h " & taskDescription
+                        End If
+                    Else
+                        If descriptionValueMapping(key) = "" Then
+                            descriptionValueMapping(key) = descriptionValueMapping(key) & line
+                        Else
+                            descriptionValueMapping(key) = descriptionValueMapping(key) & vbCr & line
+                        End If
+                    End If
+                End If
+            Next line
+            
+            If Not hasFound Then
+                descriptionValueMapping(key) = descriptionValueMapping(key) & vbCr & "- " & Format(durationInHours, "0.00") & " h " & taskDescription
+             End If
          Else
             descriptionValueMapping.Add key, "- " & Format(durationInHours, "0.00") & " h " & taskDescription
          End If
@@ -212,9 +294,9 @@ Sub Report_Generator()
                 
                 ws.AutoFilterMode = False
                 
-                ws.Range("A1").AutoFilter Field:=1, Criteria1:=projectItem
-                ws.Range("B1").AutoFilter Field:=2, Criteria1:=clientItem
-                ws.Range("E1").AutoFilter Field:=5, Criteria1:=userItem
+                ws.Range(GetColumnLetter(projectColumnIndex) & "1").AutoFilter Field:=projectColumnIndex, Criteria1:=projectItem
+                ws.Range(GetColumnLetter(clientColumnIndex) & "1").AutoFilter Field:=clientColumnIndex, Criteria1:=clientItem
+                ws.Range(GetColumnLetter(userColumnIndex) & "1").AutoFilter Field:=userColumnIndex, Criteria1:=userItem
                 
                 Dim criteriaArray() As Variant
                 Dim iterationDate As Date
@@ -226,11 +308,11 @@ Sub Report_Generator()
                     ReDim Preserve criteriaArray(UBound(criteriaArray) + 1)
                     criteriaArray(UBound(criteriaArray)) = Format(iterationDate, "dd/MM/yyyy")
                 Loop
-                ws.Range("J1").AutoFilter Field:=10, Criteria1:=criteriaArray, Operator:=xlFilterValues
+                ws.Range(GetColumnLetter(startDateColumnIndex) & "1").AutoFilter Field:=startDateColumnIndex, Criteria1:=criteriaArray, Operator:=xlFilterValues
                 
                 'Filter Rows Count
                 Dim filterRange As Range
-                Set filterRange = ws.Range("J1:J" & lastRow) ' Replace with your specific range
+                Set filterRange = ws.Range(GetColumnLetter(startDateColumnIndex) & "1:" & GetColumnLetter(startDateColumnIndex) & lastRow)
             
                 Dim visibleRowCount As Long
                 Dim cell As Range
@@ -419,7 +501,7 @@ Sub Report_Generator()
                                           
                      weekLastDay = weekInitialDay + 6
                      
-                    For rowIndex = 2 To ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+                    For rowIndex = 2 To ws.Cells(ws.Rows.count, 1).End(xlUp).Row
                         If duplicatedRow.Exists(rowIndex) Or _
                            userNameMapping(rowIndex) <> CStr(userItem) Or _
                            clientNameMapping(rowIndex) <> clientItem Or _
@@ -429,13 +511,13 @@ Sub Report_Generator()
                             GoTo skipIteration
                         End If
                                             
-                        user = ws.Cells(rowIndex, 5).Value
+                        user = ws.Cells(rowIndex, userColumnIndex).Value
                         
-                        client = ws.Cells(rowIndex, 2).Value
+                        client = ws.Cells(rowIndex, clientColumnIndex).Value
                         
-                        project = ws.Cells(rowIndex, 1).Value
+                        project = ws.Cells(rowIndex, projectColumnIndex).Value
                         
-                        startDate = GetFormatedDate(ws.Cells(rowIndex, 10).Value)
+                        startDate = GetFormatedDate(ws.Cells(rowIndex, startDateColumnIndex).Value) 'Format(ws.Cells(rowIndex, 10).Value, "dd/MM/yyyy")
                         
                         key = user & "_" & client & "_" & project & "_" & startDate
                     
@@ -497,18 +579,18 @@ skipIteration:
                         ' Add Totalization row
                         .Tables(1).Rows.Add
                         With .Tables(1)
-                            .cell(.Rows.Count, 1).Range.Text = "Total"
-                            .cell(.Rows.Count, 1).Range.Font.Bold = True
-                            .cell(.Rows.Count, 3).Range.Text = Format(totalHours, "0.00") ' Display the accumulated total hours
-                            .cell(.Rows.Count, 3).Range.Font.Bold = True
-                            .cell(.Rows.Count, 3).Range.Paragraphs.Alignment = wdAlignParagraphRight
+                            .cell(.Rows.count, 1).Range.Text = "Total"
+                            .cell(.Rows.count, 1).Range.Font.Bold = True
+                            .cell(.Rows.count, 3).Range.Text = Format(totalHours, "0.00") ' Display the accumulated total hours
+                            .cell(.Rows.count, 3).Range.Font.Bold = True
+                            .cell(.Rows.count, 3).Range.Paragraphs.Alignment = wdAlignParagraphRight
                             
-                            .Rows(.Rows.Count).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
-                            .Rows(.Rows.Count).Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
-                            .Rows(.Rows.Count).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
-                            .Rows(.Rows.Count).Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
-                            .Rows(.Rows.Count).Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
-                            .Rows(.Rows.Count).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
+                            .Rows(.Rows.count).Borders(wdBorderLeft).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.count).Borders(wdBorderBottom).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.count).Borders(wdBorderRight).LineStyle = wdLineStyleSingle
+                            .Rows(.Rows.count).Borders(wdBorderLeft).LineWidth = wdLineWidth225pt
+                            .Rows(.Rows.count).Borders(wdBorderBottom).LineWidth = wdLineWidth225pt
+                            .Rows(.Rows.count).Borders(wdBorderRight).LineWidth = wdLineWidth225pt
                         End With
 
                         If wordRowIndex > 2 Then
@@ -618,3 +700,25 @@ End Sub
 Private Function GetFormatedDate(dateToCast As String) As Date
      GetFormatedDate = DateValue(Format(dateToCast, "dd/MM/yyyy"))  'Cast String to Date Specifing that format on excel string is dd/MM/yyyy
 End Function
+
+Private Function GetColumnLetter(columnIndex As Integer) As String
+    GetColumnLetter = Split(Cells(1, columnIndex).Address, "$")(1)
+End Function
+
+Private Function StringEndsWith(ByVal mainString As String, ByVal searchString As String) As Boolean
+    Dim lengthMain As Long
+    Dim lengthSearch As Long
+    
+    ' Get the lengths of the main string and the search string
+    lengthMain = Len(mainString)
+    lengthSearch = Len(searchString)
+    
+    ' Check if the main string ends with the search string
+    If lengthMain >= lengthSearch Then
+        StringEndsWith = (Right(mainString, lengthSearch) = searchString)
+    Else
+        StringEndsWith = False
+    End If
+End Function
+
+
