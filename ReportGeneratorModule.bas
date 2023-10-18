@@ -379,14 +379,22 @@ Sub Report_Generator()
                         Range:=rng)
 
                     pic.Range.ParagraphFormat.Alignment = wdAlignParagraphRight
-                End If
+                 End If
                  
                  With wordDoc
                      .Content.Font.Size = 12
                      
                      .Content.Paragraphs.Add
+
+                     Dim title As String
+                     If clientItem = AtmoseraClient Then
+                        title = "Consultant Status Report"
+                     Else
+                        title = "Developer Status Report"
+                     End If
+                
                      With .Content.Paragraphs.Last.Range
-                         .Text = "Developer Status Report"
+                         .Text = title
                          .Font.Name = "Arial"
                          .Font.Size = 16
                          .Font.Bold = True
