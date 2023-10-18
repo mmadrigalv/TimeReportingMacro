@@ -17,6 +17,8 @@ Sub Report_Generator()
     Const wdBorderBottom As Integer = -3
     Const wdBorderRight As Integer = -4
     
+    const AtmoseraClient = "Atmosera"
+
     ' GET THE WORKBOOK
     Dim currentWorkbook As Workbook
     Set currentWorkbook = ActiveWorkbook
@@ -94,10 +96,6 @@ Sub Report_Generator()
     Set projectsName = New Collection
     Set weeks = New Collection
     
-    Dim daysOfWeek() As String
-    daysOfWeek = Split("Sat.,Sun.,Mon.,Tue.,Wed.,Thu.,Fri.", ",")
-    
-    
     Dim key As String
     Dim rowIndex As Long
     Dim lasRow As Long
@@ -130,41 +128,9 @@ Sub Report_Generator()
             maxDate = dateProcessed
         End If
     Next i
-    
-    If Weekday(minDate) <> vbSaturday Then
-        minDate = minDate + 1 - Weekday(minDate, vbSaturday) 'previousSaturday
-    End If
-    
-    If Weekday(maxDate) <> vbFriday Then
-        maxDate = maxDate + 8 - Weekday(maxDate, vbFriday) 'next friday
-    End If
 
-    Dim initialDate As Date
-    initialDate = minDate
-    Dim weekId As Integer
-    weekId = 1
-    weeks.Add 1
-    
-    Dim weekInitialDay As Date
-    weekInitialDay = vbNull
-    
-    Dim weekLastDay As Date
-    weekLastDay = vbNull
-
-    'GET WEEKS STARTING DAY SATURDAY
-    Dim daysCount As Integer
-    daysCount = 1
-    While initialDate <= maxDate
-        If daysCount = 7 Then
-            weekId = weekId + 1
-            weeks.Add weekId
-            daysCount = 1
-        Else
-            daysCount = daysCount + 1
-        End If
-        
-        initialDate = initialDate + 1
-    Wend
+    Dim startingDate As String
+    startingDate = "Saturday"
     
     For rowIndex = 2 To lastRow
 
@@ -203,6 +169,10 @@ Sub Report_Generator()
         
         On Error Resume Next
             clientsName.Add client, CStr(client)
+
+            If CStr(client) = AtmoseraClient And startingDate = "Saturday" Then
+                DownloadAtmosEraLogo
+            End If
         On Error GoTo 0
         
         projectNameMapping.Add rowIndex, project
@@ -266,16 +236,69 @@ Sub Report_Generator()
          End If
         
     Next rowIndex
-    
-    
+
+    Dim daysOfWeek() As String
+
     Dim userItem As Variant
     For Each userItem In usersName
     
         Dim clientItem As Variant
         For Each clientItem In clientsName
-
+            If clientItem = AtmoseraClient Then
+                startingDate = "Monday"
+            Else
+                startingDate = "Saturday"
+            End If
+            
             Dim projectItem As Variant
             For Each projectItem In projectsName
+            
+            
+            If startingDate = "Saturday" Then
+                If Weekday(minDate) <> vbSaturday Then
+                    minDate = minDate + 1 - Weekday(minDate, vbSaturday) 'previous Saturday
+                End If
+                
+                If Weekday(maxDate) <> vbFriday Then
+                    maxDate = maxDate + 8 - Weekday(maxDate, vbFriday) 'next friday
+                End If
+            Else
+                If Weekday(minDate) <> vbMonday Then
+                    minDate = minDate + 1 - Weekday(minDate, vbMonday) 'previous monday
+                End If
+                
+                If Weekday(maxDate) <> vbSunday Then
+                    maxDate = maxDate + 8 - Weekday(maxDate, vbSunday) 'next Sunday
+                End If
+            End If
+        
+            Dim initialDate As Date
+            initialDate = minDate
+            Dim weekId As Integer
+            weekId = 1
+            weeks.Add 1
+            
+            Dim weekInitialDay As Date
+            weekInitialDay = vbNull
+            
+            Dim weekLastDay As Date
+            weekLastDay = vbNull
+        
+            'GET WEEKS STARTING DAY SATURDAY
+            Dim daysCount As Integer
+            daysCount = 1
+            While initialDate <= maxDate
+                If daysCount = 7 Then
+                    weekId = weekId + 1
+                    weeks.Add weekId
+                    daysCount = 1
+                Else
+                    daysCount = daysCount + 1
+                End If
+                
+                initialDate = initialDate + 1
+            Wend
+            
              
              weekLastDay = vbNull
              Dim weekItem As Variant
@@ -284,7 +307,7 @@ Sub Report_Generator()
                  If weekLastDay >= maxDate Then
                     GoTo skipWeek
                  End If
-                 
+
                  If weekLastDay = vbNull Then
                     weekInitialDay = minDate
                 Else
@@ -301,8 +324,8 @@ Sub Report_Generator()
                 Dim criteriaArray() As Variant
                 Dim iterationDate As Date
                 ReDim criteriaArray(0)
-                iterationDate = CDate(weekInitialDay)
-                criteriaArray(0) = iterationDate
+                iterationDate = weekInitialDay
+                criteriaArray(0) = Format(iterationDate, "dd/MM/yyyy")
                 Do While iterationDate < weekLastDay
                     iterationDate = iterationDate + 1
                     ReDim Preserve criteriaArray(UBound(criteriaArray) + 1)
@@ -336,13 +359,27 @@ Sub Report_Generator()
                 End If
                 ws.AutoFilterMode = False
                  
-                 
                  Dim wordApp As Object
                  Set wordApp = CreateObject("Word.Application")
                  wordApp.Visible = False
                  
                  Dim wordDoc As Object
                  Set wordDoc = wordApp.Documents.Add
+
+                 If clientItem = AtmoseraClient Then
+                    Dim pic As Variant
+                    Set rng = wordDoc.Content
+                    rng.Collapse Direction:=0 'wdCollapseEnd
+                    
+                    ' Insert the image with specified properties
+                    Set pic = wordDoc.InlineShapes.AddPicture( _
+                        Filename:=ActiveWorkbook.path & "\atmosera_logo.png", _
+                        LinkToFile:=False, _
+                        SaveWithDocument:=True, _
+                        Range:=rng)
+
+                    pic.Range.ParagraphFormat.Alignment = wdAlignParagraphRight
+                End If
                  
                  With wordDoc
                      .Content.Font.Size = 12
@@ -598,6 +635,13 @@ skipIteration:
                                 ' Loop through each day of the week
                                 Dim dateCol As Date
                                 dateCol = weekInitialDay
+                                
+                                If (startingDate = "Saturday") Then
+                                    daysOfWeek = Split("Sat.,Sun.,Mon.,Tue.,Wed.,Thu.,Fri.", ",")
+                                Else
+                                    daysOfWeek = Split("Mon.,Tue.,Wed.,Thu.,Fri.,Sat.,Sun.", ",")
+                                End If
+                                
                                 For i = 0 To UBound(daysOfWeek)
                                     found = False
                                     
@@ -720,5 +764,36 @@ Private Function StringEndsWith(ByVal mainString As String, ByVal searchString A
         StringEndsWith = False
     End If
 End Function
+
+Private Sub DownloadAtmosEraLogo()
+    Dim url As String
+    url = "https://lh3.googleusercontent.com/u/0/drive-viewer/AK7aPaBl62TAv4OpqReKAeRbCbYKlmx7HJEcNKlXSEky7uC_M7FwlH-RrXf6b42gmsfR3Sb7ImIhenwdEZ99munpeUObZcj_LA=w1860-h895" ' Replace with the direct URL of the image you obtained from the browser
+
+    Dim http As Object
+    Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+
+    ' Send an HTTP GET request to the URL
+    http.Open "GET", url, False
+    http.send
+
+    ' Check if the request was successful (status code 200)
+    If http.Status = 200 Then
+        Dim imageBytes() As Byte
+        imageBytes = http.responseBody
+
+        ' Specify the local file path where you want to save the image
+        Dim filePath As String
+        filePath = ActiveWorkbook.path & "\atmosera_logo.png"
+        ' Save the image to the specified file path
+        Open filePath For Binary As #1
+        Put #1, , imageBytes
+        Close #1
+
+        'MsgBox "Image downloaded successfully."
+    Else
+        MsgBox "Failed to download the image. HTTP Status: " & http.Status
+    End If
+End Sub
+
 
 
