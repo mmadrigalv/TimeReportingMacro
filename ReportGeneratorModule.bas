@@ -775,8 +775,8 @@ End Function
 
 Private Sub DownloadAtmosEraLogo()
     Dim url As String
-    url = "https://lh3.googleusercontent.com/u/0/drive-viewer/AK7aPaBl62TAv4OpqReKAeRbCbYKlmx7HJEcNKlXSEky7uC_M7FwlH-RrXf6b42gmsfR3Sb7ImIhenwdEZ99munpeUObZcj_LA=w1860-h895" ' Replace with the direct URL of the image you obtained from the browser
-
+    url = "https://drive.google.com/uc?id=14IuvCI4iMSIM7tDqiew2655nZqfYSk4N"
+    
     Dim http As Object
     Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
 
